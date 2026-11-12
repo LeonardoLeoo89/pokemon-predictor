@@ -1,0 +1,67 @@
+# Datasets and large competition files
+fds-*
+fds-pokemon-battles-prediction-2026
+fds-pokemon-battles-prediction-2026/
+fds-pokemon-battles-prediction-2026.zip
+*.zip
+*.jsonl
+data
+data/
+
+# Model artifacts and predictions
+*.joblib
+*.pkl
+*predictions*.csv
+*submission*.csv
+
+# Scratch and temporary scripts
+scratch/
+removeline.py
+
+# LaTeX compilation auxiliary files
+*.aux
+*.log
+*.bbl
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+
+# Python environment and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.python-version
+.pytest_cache/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+catboost_info/
+FEATURES.md
+hyperparameter_history.json
+noisy_features.json
+pseudolabeling.csv
+pyproject.toml
+.idea/pokemon-predictor.iml
+src/feature_registry.py
+tests/__init__.py
+tests/test_feature_correctness.py
+tests/test_feature_registry.py
+tests/test_features.py
+tests/test_pipeline.py
+
+# Local descriptive reports and experiment outputs
+/reports/
+/report/
+/docs/
+src/reporting/
+
+/local_development/
+!/environment/pyproject.toml
