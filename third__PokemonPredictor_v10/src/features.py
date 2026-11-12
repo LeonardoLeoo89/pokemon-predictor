@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 from itertools import combinations
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
@@ -15,7 +6,6 @@ from sklearn.model_selection import KFold
 
 STATS = ["hp", "attack", "defense", "special-attack", "special-defense", "speed"]
 STATUS_CONDITIONS = ["frz", "slp", "tox", "psn", "par", "brn"]
-
 
 STATUS_WEIGHTS: Dict[str, float] = {
     "frz": 3.0,
@@ -173,10 +163,6 @@ TYPE_CHART: Dict[str, Dict[str, float]] = {
     },
 }
 
-
-
-
-
 def _get_species_name(poke_dict: Dict[str, Any]) -> str:
 
     if not isinstance(poke_dict, dict):
@@ -218,9 +204,6 @@ def compute_type_multiplier(
     type_chart: Optional[Dict[str, Any]] = None,
 ) -> float:
 
-
-
-
     chart = type_chart if type_chart is not None else TYPE_CHART
     if not chart or not attacker_types or not defender_types:
         return 1.0
@@ -245,19 +228,10 @@ def compute_type_multiplier(
 
     return max_mult if max_mult is not None else 1.0
 
-
-
-
 def compute_structural_type_synergy(
     team: List[Dict[str, Any]],
     type_chart: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, float]:
-
-
-
-
-
-
 
     chart = type_chart if type_chart is not None else TYPE_CHART
     all_chart_types = list(chart.keys())
@@ -276,7 +250,6 @@ def compute_structural_type_synergy(
 
     team_types_list = [_get_pokemon_types(p) for p in team]
 
-
     mult_matrix = np.ones((n_poke, len(all_chart_types)), dtype=float)
     for i, p_types in enumerate(team_types_list):
         if not p_types:
@@ -288,8 +261,6 @@ def compute_structural_type_synergy(
     total_resistances = int(np.sum((mult_matrix > 0.0) & (mult_matrix < 1.0)))
     total_immunities = int(np.sum(mult_matrix == 0.0))
 
-
-
     covered_weaknesses = 0
     for i in range(n_poke):
         for t_idx in range(len(all_chart_types)):
@@ -300,13 +271,11 @@ def compute_structural_type_synergy(
 
     covered_ratio = float(covered_weaknesses / total_weaknesses) if total_weaknesses > 0 else 1.0
 
-
     shared_uncovered = 0
     for t_idx in range(len(all_chart_types)):
         col = mult_matrix[:, t_idx]
         if np.sum(col > 1.0) >= 2 and not np.any(col < 1.0):
             shared_uncovered += 1
-
 
     pair_synergy_scores = []
     for i, j in combinations(range(n_poke), 2):
@@ -316,7 +285,6 @@ def compute_structural_type_synergy(
         pair_synergy_scores.append(float(i_weak_j_res + j_weak_i_res - shared_weak))
 
     pairwise_comp = float(np.mean(pair_synergy_scores)) if pair_synergy_scores else 0.0
-
 
     unique_team_types = list(set(t for p_t in team_types_list for t in p_t))
     types_hit_super_effectively = 0
@@ -336,20 +304,11 @@ def compute_structural_type_synergy(
         "p1_pairwise_type_complementarity": pairwise_comp,
     }
 
-
-
-
 def fit_historical_stats(
     train_records: List[Dict[str, Any]],
     smoothing_m: float = 20.0,
     pair_smoothing_m: float = 15.0,
 ) -> Dict[str, Any]:
-
-
-
-
-
-
 
     wins_list = [int(b["player_won"]) for b in train_records if "player_won" in b]
     global_prior = float(np.mean(wins_list)) if wins_list else 0.5
@@ -388,7 +347,6 @@ def fit_historical_stats(
         p1_species = sorted(set(filter(None, (_get_species_name(p) for p in p1_team))))
         p1_types = sorted(set(t for p in p1_team for t in _get_pokemon_types(p)))
 
-
         for k in range(1, min(7, len(p1_species) + 1)):
             for combo in combinations(p1_species, k):
                 if combo not in p1_k_tuple_stats[k]:
@@ -402,7 +360,6 @@ def fit_historical_stats(
             p1_species_stats[sp][0] += won
             p1_species_stats[sp][1] += 1
 
-
         for tp in p1_types:
             if tp not in p1_type_stats:
                 p1_type_stats[tp] = [0, 0]
@@ -415,7 +372,6 @@ def fit_historical_stats(
                 p1_type_pair_stats[t_pair] = [0, 0]
             p1_type_pair_stats[t_pair][0] += won
             p1_type_pair_stats[t_pair][1] += 1
-
 
         p2_lead_sp = _get_species_name(battle.get("p2_lead_details", {}))
         p2_seen_species = set()
@@ -434,7 +390,6 @@ def fit_historical_stats(
             p2_species_stats[sp2][0] += won
             p2_species_stats[sp2][1] += 1
 
-
         p1_lead_sp = _get_species_name(p1_team[0]) if p1_team else ""
         if p1_lead_sp and p2_lead_sp:
             m_key = (p1_lead_sp, p2_lead_sp)
@@ -443,14 +398,12 @@ def fit_historical_stats(
             lead_matchup_stats[m_key][0] += won
             lead_matchup_stats[m_key][1] += 1
 
-
     def _smooth(w: int, c: int, m: float) -> float:
         return float((w + m * global_prior) / (c + m))
 
     p1_sp_wr = {sp: _smooth(w, c, smoothing_m) for sp, (w, c) in p1_species_stats.items()}
 
     p2_sp_wr = {sp: 1.0 - _smooth(w, c, smoothing_m) for sp, (w, c) in p2_species_stats.items()}
-
 
     k_smoothing_m = {1: smoothing_m, 2: pair_smoothing_m, 3: 10.0, 4: 8.0, 5: 5.0, 6: 3.0}
     p1_k_wr: Dict[int, Dict[Tuple[str, ...], float]] = {}
@@ -501,9 +454,6 @@ def extract_empirical_synergy_features(
     historical_stats: Optional[Dict[str, Any]],
 ) -> Dict[str, float]:
 
-
-
-
     default_feats: Dict[str, float] = {
         "p1_team_mean_species_wr": 0.5,
         "p1_team_max_species_wr": 0.5,
@@ -548,11 +498,9 @@ def extract_empirical_synergy_features(
     p1_species_unique = sorted(set(p1_species_ordered))
     p1_types_unique = sorted(set(t for p in p1_team for t in _get_pokemon_types(p)))
 
-
     p1_wrs = [p1_sp_map.get(sp, prior) for sp in p1_species_ordered] if p1_species_ordered else [prior]
     p1_lead_sp = p1_species_ordered[0] if p1_species_ordered else ""
     p1_lead_wr = p1_sp_map.get(p1_lead_sp, prior)
-
 
     p2_lead_sp = _get_species_name(battle.get("p2_lead_details", {}))
     p2_lead_wr = p2_sp_map.get(p2_lead_sp, 1.0 - prior)
@@ -569,7 +517,6 @@ def extract_empirical_synergy_features(
     p2_revealed_wrs = [p2_sp_map.get(sp, 1.0 - prior) for sp in p2_seen_species] if p2_seen_species else [1.0 - prior]
 
     feats: Dict[str, float] = {}
-
 
     for k in range(1, 7):
         k_combos = list(combinations(p1_species_unique, k))
@@ -592,12 +539,10 @@ def extract_empirical_synergy_features(
                 feats[f"p1_k{k}_synergy_lift_mean"] = 0.0
                 feats[f"p1_k{k}_synergy_lift_max"] = 0.0
 
-
     feats["p1_species_pair_mean_wr"] = feats["p1_k2_mean_wr"]
     feats["p1_species_pair_max_wr"] = feats["p1_k2_max_wr"]
     feats["p1_species_pair_synergy_lift_mean"] = feats["p1_k2_synergy_lift_mean"]
     feats["p1_species_pair_synergy_lift_max"] = feats["p1_k2_synergy_lift_max"]
-
 
     type_wrs = [p1_tp_map.get(tp, prior) for tp in p1_types_unique] if p1_types_unique else [prior]
     type_pair_wrs = []
@@ -605,7 +550,6 @@ def extract_empirical_synergy_features(
     for tp_a, tp_b in combinations(p1_types_unique, 2):
         type_pair_wrs.append(p1_tp_pair_wr_map.get((tp_a, tp_b), prior))
         type_pair_lifts.append(p1_tp_pair_syn_map.get((tp_a, tp_b), 0.0))
-
 
     lead_matchup_wr = lead_matchup_map.get((p1_lead_sp, p2_lead_sp), prior) if (p1_lead_sp and p2_lead_sp) else prior
 
@@ -627,9 +571,6 @@ def extract_empirical_synergy_features(
 
     return feats
 
-
-
-
 def _extract_hp(state: Dict[str, Any], default: float = 100.0) -> float:
 
     if not isinstance(state, dict):
@@ -642,14 +583,7 @@ def _extract_hp(state: Dict[str, Any], default: float = 100.0) -> float:
         return val * 100.0
     return max(0.0, min(100.0, val))
 
-
 def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
-
-
-
-
-
-
 
     if isinstance(battle_or_timeline, dict):
         timeline = battle_or_timeline.get("battle_timeline", [])
@@ -704,7 +638,6 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
         p1_sp = _get_species_name(p1_state) or f"p1_slot_{len(p1_revealed_roster)}"
         p2_sp = _get_species_name(p2_state) or f"p2_slot_{len(p2_revealed_roster)}"
 
-
         action_p1_switch = str(turn_data.get("p1_action", "")).lower() == "switch"
         action_p2_switch = str(turn_data.get("p2_action", "")).lower() == "switch"
         name_p1_switch = (last_p1_sp is not None and p1_sp != last_p1_sp)
@@ -722,13 +655,11 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
         last_p1_sp = p1_sp
         last_p2_sp = p2_sp
 
-
         p1_hp = _extract_hp(p1_state, default=p1_active_hp)
         p2_hp = _extract_hp(p2_state, default=p2_active_hp)
 
         p1_status = str(p1_state.get("status", "")).lower()
         p2_status = str(p2_state.get("status", "")).lower()
-
 
         p1_ko = (
             bool(turn_data.get("p1_fainted", p1_state.get("fainted", False)))
@@ -782,7 +713,6 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
             "fainted": p2_ko,
         }
 
-
         if idx > 0:
             prev_turn = timeline[idx - 1]
             prev_p1 = prev_turn.get("p1_pokemon_state", prev_turn.get("p1_state", {})) or {}
@@ -795,7 +725,6 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
                 p2_damage_dealt += (prev_hp1 - p1_hp)
             if prev_sp2 == p2_sp and prev_hp2 > p2_hp:
                 p1_damage_dealt += (prev_hp2 - p2_hp)
-
 
         m1 = turn_data.get("p1_move_details")
         m2 = turn_data.get("p2_move_details")
@@ -838,7 +767,6 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
     feats["p2_remaining_estimated"] = 6 - p2_fainted_final
     feats["remaining_diff"] = feats["p1_remaining_estimated"] - feats["p2_remaining_estimated"]
 
-
     p1_unrev = max(0, 6 - len(p1_revealed_roster))
     p2_unrev = max(0, 6 - len(p2_revealed_roster))
     p1_total_hp = sum(v["hp"] for v in p1_revealed_roster.values() if not v["fainted"]) + p1_unrev * 100.0
@@ -865,7 +793,6 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
     p2_sev = sum(STATUS_WEIGHTS.get(v["status"], 0.0) for v in p2_revealed_roster.values() if not v["fainted"])
     feats["status_severity_diff"] = float(p2_sev - p1_sev)
 
-
     feats["p1_damage_dealt"] = float(p1_damage_dealt)
     feats["p2_damage_dealt"] = float(p2_damage_dealt)
     feats["damage_dealt_diff"] = float(p1_damage_dealt - p2_damage_dealt)
@@ -878,7 +805,6 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
     feats["p1_rests_used"] = p1_rests
     feats["p2_rests_used"] = p2_rests
 
-
     end_p1 = timeline[-1].get("p1_pokemon_state", timeline[-1].get("p1_state", {})) if timeline else {}
     end_p2 = timeline[-1].get("p2_pokemon_state", timeline[-1].get("p2_state", {})) if timeline else {}
     b1_dict = end_p1.get("boosts", {}) if isinstance(end_p1.get("boosts"), dict) else {}
@@ -890,7 +816,6 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
     feats["active_boosts_diff"] = float(b1_net - b2_net)
     feats["active_stat_boost_advantage"] = float(b1_net - b2_net)
 
-
     if len(timeline) >= 20:
         t20 = timeline[19]
         st1_20 = t20.get("p1_pokemon_state", t20.get("p1_state", {})) or {}
@@ -901,13 +826,11 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
     else:
         feats["late_game_hp_momentum"] = 0.0
 
-
     st1_status = str(end_p1.get("status", "")).lower()
     st2_status = str(end_p2.get("status", "")).lower()
     incap1 = 1.0 if st1_status in ["frz", "slp"] else 0.0
     incap2 = 1.0 if st2_status in ["frz", "slp"] else 0.0
     feats["active_incapacitation_advantage"] = float(incap2 - incap1)
-
 
     feats["p1_hazard_chip_damage"] = float(p1_hazard_chip)
     feats["p2_hazard_chip_damage"] = float(p2_hazard_chip)
@@ -936,12 +859,9 @@ def extract_timeline_dynamics(battle_or_timeline: Any) -> Dict[str, Any]:
 
     return feats
 
-
-
 MEDIAN_BATTLE_LENGTH_HP: float = 80.27
 MEDIAN_FIRST_FAINT_TURN: float = 17.00
 MEDIAN_BATTLE_LENGTH_FAINT: float = 180.00
-
 
 def compute_battle_length_and_offensive_advantage(
     p1_team: List[Dict[str, Any]],
@@ -950,10 +870,6 @@ def compute_battle_length_and_offensive_advantage(
     median_battle_length: float = MEDIAN_BATTLE_LENGTH_HP,
     median_first_faint: float = MEDIAN_FIRST_FAINT_TURN,
 ) -> Dict[str, float]:
-
-
-
-
 
     atk_list = [_get_pokemon_stat(p, "attack") for p in p1_team]
     spa_list = [_get_pokemon_stat(p, "special-attack") for p in p1_team]
@@ -971,14 +887,11 @@ def compute_battle_length_and_offensive_advantage(
 
     p1_off_stat = (mean_atk + mean_spa + mean_spe) / (mean_hp + mean_def + mean_spd + 1e-5)
 
-
     moves = [t.get("p1_move_details", {}) for t in timeline if t.get("p1_move_details")]
     damaging_moves = sum(1 for m in moves if float(m.get("base_power", 0) or 0) > 0)
     move_off_ratio = float(damaging_moves / max(1, len(moves)))
 
-
     p1_offensiveness = float(0.7 * p1_off_stat + 0.3 * move_off_ratio)
-
 
     if extracted_timeline_feats:
         p1_hp_pool = float(extracted_timeline_feats.get("p1_total_hp_pool", 600.0))
@@ -995,7 +908,6 @@ def compute_battle_length_and_offensive_advantage(
     hp_rate = tot_hp_lost / 30.0
     b_len_hp = float(min(600.0, 1200.0 / hp_rate))
 
-
     first_faint_turn = 30.0
     for t_idx, t in enumerate(timeline):
         st1 = t.get("p1_pokemon_state", t.get("p1_state", {})) or {}
@@ -1004,13 +916,9 @@ def compute_battle_length_and_offensive_advantage(
             first_faint_turn = float(t.get("turn", t_idx + 1))
             break
 
-
-
     offensive_tempo_adv = float(p1_offensiveness * (median_battle_length - b_len_hp) / median_battle_length)
 
-
     offensive_first_faint_adv = float(p1_offensiveness * (median_first_faint - first_faint_turn) / median_first_faint)
-
 
     p1_surv_len = float(30.0 * 6.0 / (p1_f + 0.25))
     p2_surv_len = float(30.0 * 6.0 / (p2_f + 0.25))
@@ -1028,10 +936,7 @@ def compute_battle_length_and_offensive_advantage(
         "offensive_survival_leverage": offensive_survival_leverage,
     }
 
-
-
 INTERNAL_SPECIES_CACHE: Dict[str, Dict[str, Any]] = {}
-
 
 def register_species_from_battle(battle: Dict[str, Any]) -> None:
 
@@ -1049,7 +954,6 @@ def register_species_from_battle(battle: Dict[str, Any]) -> None:
             "types": _get_pokemon_types(p2_lead),
             "stats": {s: _get_pokemon_stat(p2_lead, s) for s in STATS},
         }
-
 
 def get_internal_species_info(
     species_name: str,
@@ -1069,21 +973,11 @@ def get_internal_species_info(
         "stats": {s: 70.0 for s in STATS},
     }
 
-
 def trace_opponent_pokemon_and_features(
     battle: Dict[str, Any],
     type_chart: Optional[Dict[str, Any]] = None,
     species_dex: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, float]:
-
-
-
-
-
-
-
-
-
 
     chart = type_chart if type_chart is not None else TYPE_CHART
     register_species_from_battle(battle)
@@ -1091,7 +985,6 @@ def trace_opponent_pokemon_and_features(
     p1_team = battle.get("p1_team_details", [])
     p2_lead = battle.get("p2_lead_details", {})
     timeline = battle.get("battle_timeline", [])
-
 
     p2_revealed: Dict[str, Dict[str, Any]] = {}
     lead_sp = _get_species_name(p2_lead)
@@ -1148,7 +1041,6 @@ def trace_opponent_pokemon_and_features(
     n_p2_surv = max(0, n_p2_rev - n_p2_fnt)
     p2_faint_rate = float(n_p2_fnt / max(1, n_p2_rev))
 
-
     p2_bsts = [sum(v["stats"].values()) for v in p2_revealed.values()]
     p2_speeds = [v["stats"].get("speed", 70.0) for v in p2_revealed.values()]
     p2_mean_bst = float(np.mean(p2_bsts)) if p2_bsts else 450.0
@@ -1163,7 +1055,6 @@ def trace_opponent_pokemon_and_features(
 
     bst_diff_vs_known = p1_mean_bst - p2_mean_bst
     speed_diff_vs_known = p1_mean_speed - p2_mean_speed
-
 
     p1_se_count = 0
     p2_se_count = 0
@@ -1197,7 +1088,6 @@ def trace_opponent_pokemon_and_features(
     threatened_net_ratio = float(p2_threatened_ratio - p1_threatened_ratio)
     wall_adv = float(p1_wall_count - p2_wall_count)
 
-
     surv_p1 = [p for p in p1_team if _get_species_name(p) not in p1_fainted]
     surv_p2 = [q_v for q_sp, q_v in p2_revealed.items() if not q_v["fainted"]]
     surv_p1_se = 0
@@ -1213,7 +1103,6 @@ def trace_opponent_pokemon_and_features(
     surv_net_se_adv = float(surv_p1_se - surv_p2_se)
     surv_p2_threatened_ratio = float(surv_p1_se > 0) if surv_p2 else 1.0
 
-
     p1_surv_bst = sum(sum(_get_pokemon_stat(p, s) for s in STATS) for p in p1_team if _get_species_name(p) not in p1_fainted)
     p2_surv_bst = sum(sum(v["stats"].values()) for v in p2_revealed.values() if not v["fainted"]) + max(0, 6 - n_p2_rev) * 500.0
     surv_bst_diff = float(p1_surv_bst - p2_surv_bst)
@@ -1221,7 +1110,6 @@ def trace_opponent_pokemon_and_features(
     p1_surv_spe = sum(_get_pokemon_stat(p, "speed") for p in p1_team if _get_species_name(p) not in p1_fainted)
     p2_surv_spe = sum(v["stats"].get("speed", 70.0) for v in p2_revealed.values() if not v["fainted"]) + max(0, 6 - n_p2_rev) * 70.0
     surv_spe_diff = float(p1_surv_spe - p2_surv_spe)
-
 
     p1_eff_bst = sum(
         sum(_get_pokemon_stat(p, s) for s in STATS) * (p1_hp_map.get(_get_species_name(p), 100.0) / 100.0)
@@ -1242,7 +1130,6 @@ def trace_opponent_pokemon_and_features(
         for v in p2_revealed.values() if not v["fainted"]
     ) + max(0, 6 - n_p2_rev) * 70.0
     eff_spe_diff = float(p1_eff_spe - p2_eff_spe)
-
 
     stage_mults = {
         6: 4.0, 5: 3.5, 4: 3.0, 3: 2.5, 2: 2.0, 1: 1.5, 0: 1.0,
@@ -1299,7 +1186,6 @@ def trace_opponent_pokemon_and_features(
         finisher_threat_diff = 0.0
         safe_bench_switch_diff = 0.0
 
-
     p1_spikes = sum(1 for t in timeline if str((t.get("p1_move_details") or {}).get("name", "")).lower() == "spikes")
     p2_spikes = sum(1 for t in timeline if str((t.get("p2_move_details") or {}).get("name", "")).lower() == "spikes")
     p1_grounded = sum(1 for p in p1_team if "flying" not in [str(tp).lower() for tp in _get_pokemon_types(p)])
@@ -1343,23 +1229,17 @@ def trace_opponent_pokemon_and_features(
         "safe_bench_switch_diff": safe_bench_switch_diff,
     }
 
-
-
-
 def extract_single_battle_features(
     battle: Dict[str, Any],
     type_chart: Optional[Dict[str, Any]] = None,
     historical_stats: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
 
-
-
     chart = type_chart if type_chart is not None else TYPE_CHART
 
     feats: Dict[str, Any] = {
         "battle_id": battle.get("battle_id"),
     }
-
 
     p1_team = battle.get("p1_team_details", [])
     feats["p1_team_size"] = len(p1_team)
@@ -1407,12 +1287,9 @@ def extract_single_battle_features(
     mean_spa = feats.get("p1_mean_special-attack", 1.0)
     feats["p1_phys_spec_ratio"] = float(mean_atk / (mean_spa + 1e-5))
 
-
     feats.update(compute_structural_type_synergy(p1_team, chart))
 
-
     feats.update(extract_empirical_synergy_features(battle, historical_stats))
-
 
     p2_lead = battle.get("p2_lead_details", {})
     p2_lead_types = _get_pokemon_types(p2_lead)
@@ -1455,10 +1332,8 @@ def extract_single_battle_features(
     feats["p1_team_weak_vs_p2_lead_count"] = p1_weak_vs_p2_lead
     feats["p1_team_outspeeds_p2_lead_count"] = p1_outspeeds_p2_lead
 
-
     timeline = battle.get("battle_timeline", [])
     feats.update(extract_timeline_dynamics(timeline))
-
 
     feats.update(
         compute_battle_length_and_offensive_advantage(
@@ -1467,7 +1342,6 @@ def extract_single_battle_features(
             extracted_timeline_feats=feats,
         )
     )
-
 
     sp_dex = historical_stats.get("species_dex") if historical_stats else None
     feats.update(
@@ -1480,9 +1354,6 @@ def extract_single_battle_features(
 
     return feats
 
-
-
-
 def extract_features(
     records: List[Dict[str, Any]],
     type_chart: Optional[Dict[str, Any]] = None,
@@ -1490,13 +1361,6 @@ def extract_features(
     n_splits: int = 5,
     random_state: int = 42,
 ) -> pd.DataFrame:
-
-
-
-
-
-
-
 
     chart = type_chart if type_chart is not None else TYPE_CHART
     is_labeled = bool(records and "player_won" in records[0])
@@ -1526,10 +1390,7 @@ def extract_features(
 
     return df
 
-
-
 ZERO_VARIANCE_CONSTANTS: List[str] = ["p1_team_size", "turns_observed", "median_battle_length"]
-
 
 PRIORITY_DOMAIN_SIGNALS: List[str] = [
     "true_hazard_chip_damage_diff",
@@ -1549,7 +1410,6 @@ PRIORITY_DOMAIN_SIGNALS: List[str] = [
     "safe_bench_switch_diff",
 ]
 
-
 def prune_features(
     df: pd.DataFrame,
     target_col: str = "player_won",
@@ -1558,20 +1418,6 @@ def prune_features(
     selected_cols: Optional[List[str]] = None,
     force_keep_cols: Optional[List[str]] = None,
 ) -> Tuple[pd.DataFrame, List[str]]:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     ignore_cols = {"battle_id", target_col}
     all_feature_cols = [c for c in df.columns if c not in ignore_cols]
@@ -1587,13 +1433,11 @@ def prune_features(
     X = df[all_feature_cols].values.astype(float)
     X = np.nan_to_num(X, nan=0.0)
 
-
     stds = np.nanstd(X, axis=0)
     keep_indices = [
         i for i, col in enumerate(all_feature_cols)
         if not (drop_constants and (stds[i] < 1e-8 or col in ZERO_VARIANCE_CONSTANTS))
     ]
-
 
     if target_col in df:
         y = df[target_col].values.astype(float)

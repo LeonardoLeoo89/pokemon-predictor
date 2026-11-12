@@ -1,22 +1,8 @@
-
-
-
-
 import json
 from typing import Generator, Dict, Any, List, Optional
 import pandas as pd
 
-
 def load_jsonl(filepath: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-
-
-
-
-
-
-
-
-
 
     records = []
     with open(filepath, "r", encoding="utf-8") as f:
@@ -28,17 +14,7 @@ def load_jsonl(filepath: str, limit: Optional[int] = None) -> List[Dict[str, Any
                 records.append(json.loads(line_str))
     return records
 
-
 def stream_jsonl(filepath: str) -> Generator[Dict[str, Any], None, None]:
-
-
-
-
-
-
-
-
-
 
     with open(filepath, "r", encoding="utf-8") as f:
         for line in f:
@@ -46,17 +22,7 @@ def stream_jsonl(filepath: str) -> Generator[Dict[str, Any], None, None]:
             if line_str:
                 yield json.loads(line_str)
 
-
 def parse_metadata_dataframe(records: List[Dict[str, Any]]) -> pd.DataFrame:
-
-
-
-
-
-
-
-
-
 
     data = []
     for battle in records:
@@ -69,16 +35,7 @@ def parse_metadata_dataframe(records: List[Dict[str, Any]]) -> pd.DataFrame:
 
     return pd.DataFrame(data)
 
-
 def load_type_chart(filepath: str) -> Dict[str, Any]:
-
-
-
-
-
-
-
-
 
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)

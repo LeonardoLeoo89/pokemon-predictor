@@ -200,7 +200,7 @@ class PokemonBattlePredictionPipeline:
         avg_probs = oof_matrix.mean(axis=1)
         avg_stats = compute_complete_statistics(y, avg_probs, threshold=0.5)
         table_rows.append({
-            "Model / Pipeline": "Simple Average",
+            "Model / Pipeline": "Average",
             "Acc (%)": round(avg_stats["accuracy"] * 100, 2),
             "AUC (%)": round(avg_stats["roc_auc"] * 100, 2),
             "Brier": round(avg_stats["brier_score_loss"], 4),
@@ -210,7 +210,7 @@ class PokemonBattlePredictionPipeline:
         simplex_linear_probs = oof_matrix @ self.simplex_weights_
         simplex_stats = compute_complete_statistics(y, simplex_linear_probs, threshold=0.5)
         table_rows.append({
-            "Model / Pipeline": "Simplex Blend (SLSQP)",
+            "Model / Pipeline": "Optimized Weighted Average (SLSQP)",
             "Acc (%)": round(simplex_stats["accuracy"] * 100, 2),
             "AUC (%)": round(simplex_stats["roc_auc"] * 100, 2),
             "Brier": round(simplex_stats["brier_score_loss"], 4),
@@ -218,7 +218,7 @@ class PokemonBattlePredictionPipeline:
         })
 
         table_rows.append({
-            "Model / Pipeline": "Calibrated Blend",
+            "Model / Pipeline": "Tuned Weighted Average (Hölder)",
             "Acc (%)": round(self.cv_metrics_["accuracy"] * 100, 2),
             "AUC (%)": round(self.cv_metrics_["roc_auc"] * 100, 2),
             "Brier": round(self.cv_metrics_["brier_score_loss"], 4),

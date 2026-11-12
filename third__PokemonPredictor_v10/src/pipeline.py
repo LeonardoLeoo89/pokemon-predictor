@@ -1,28 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import argparse
 import os
 import pickle
@@ -49,7 +24,6 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
-
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
@@ -61,10 +35,6 @@ from src.features import (
     fit_historical_stats,
     PRIORITY_DOMAIN_SIGNALS,
 )
-
-
-
-
 
 def compute_complete_statistics(
     y_true: np.ndarray,
@@ -82,7 +52,6 @@ def compute_complete_statistics(
         "recall_score": float(recall_score(y_true, preds, zero_division=0)),
         "calibrated_threshold": float(threshold),
     }
-
 
 def format_stats_table(metrics: Dict[str, float], title: str = "PIPELINE STATISTICAL DATA") -> str:
 
@@ -104,13 +73,7 @@ def format_stats_table(metrics: Dict[str, float], title: str = "PIPELINE STATIST
     lines.append("=" * 65)
     return "\n".join(lines)
 
-
 class PLSSoftModel(BaseEstimator, ClassifierMixin):
-
-
-
-
-
 
     def __init__(self, n_components: int = 14, scale: float = 4.0):
         self.n_components = n_components
@@ -133,16 +96,7 @@ class PLSSoftModel(BaseEstimator, ClassifierMixin):
     def predict(self, X: np.ndarray) -> np.ndarray:
         return (self.predict_proba(X)[:, 1] >= 0.5).astype(int)
 
-
-
-
-
 class PokemonBattlePredictionPipeline:
-
-
-
-
-
 
     def __init__(
         self,
@@ -217,15 +171,10 @@ class PokemonBattlePredictionPipeline:
 
     def fit(self, train_records: List[Dict[str, Any]], verbose: bool = True) -> "PokemonBattlePredictionPipeline":
 
-
-
-
         if verbose:
             print(f"Fitting pipeline on {len(train_records)} battle records...")
 
-
         self.historical_stats_ = fit_historical_stats(train_records)
-
 
         t0 = time.time()
         df_raw = extract_features(
@@ -235,7 +184,6 @@ class PokemonBattlePredictionPipeline:
         )
         if verbose:
             print(f"  Feature extraction complete in {time.time() - t0:.2f}s ({df_raw.shape[1] - 2} features).")
-
 
         df_pruned, self.retained_features_ = prune_features(
             df_raw,
@@ -250,7 +198,6 @@ class PokemonBattlePredictionPipeline:
         X = df_pruned[self.retained_features_].values.astype(float)
         y = df_pruned["player_won"].values.astype(int)
         X = np.nan_to_num(X, nan=0.0)
-
 
         skf = StratifiedKFold(n_splits=self.n_splits_cv, shuffle=True, random_state=self.random_state)
         model_names = ["hist_gbdt_1", "hist_gbdt_2", "logistic_regression", "pls_soft_model", "extra_trees", "xgboost"]
@@ -276,7 +223,6 @@ class PokemonBattlePredictionPipeline:
                     m.fit(X_tr, y_tr)
                     oof_probs[name][val_idx] = m.predict_proba(X_val)[:, 1]
 
-
         oof_matrix = np.column_stack([oof_probs[m] for m in model_names])
         self.simplex_weights_ = self._optimize_weights(oof_matrix, y)
 
@@ -284,7 +230,6 @@ class PokemonBattlePredictionPipeline:
             print("  Optimal SLSQP Simplex Weights:")
             for m, w in zip(model_names, self.simplex_weights_):
                 print(f"    - {m:<22}: {w:.4f} ({w*100:.1f}%)")
-
 
         self.calibrated_power_r_, self.calibrated_threshold_, best_acc = self._calibrate_power_mean_and_threshold(
             oof_matrix, self.simplex_weights_, y
@@ -295,7 +240,6 @@ class PokemonBattlePredictionPipeline:
             print(f"  Calibrated Power Exponent: r = {self.calibrated_power_r_:.2f}")
             print(f"  Calibrated Decision Threshold: t = {self.calibrated_threshold_:.3f}")
             print("\n" + format_stats_table(self.cv_metrics_, title=f"OUT-OF-FOLD CROSS-VALIDATION STATISTICAL DATA ({self.n_splits_cv}-FOLD)") + "\n")
-
 
         if verbose:
             print("  Fitting final base models on all training samples...")
@@ -316,11 +260,8 @@ class PokemonBattlePredictionPipeline:
 
     def predict_proba(self, test_records: List[Dict[str, Any]]) -> np.ndarray:
 
-
-
         if not self.models_ or not self.retained_features_:
             raise RuntimeError("Pipeline must be fitted before calling predict_proba.")
-
 
         df_test_raw = extract_features(test_records, historical_stats=self.historical_stats_)
         df_test_pruned, _ = prune_features(df_test_raw, selected_cols=self.retained_features_)
@@ -345,8 +286,6 @@ class PokemonBattlePredictionPipeline:
         return np.column_stack([p0, p1])
 
     def predict(self, test_records: List[Dict[str, Any]]) -> np.ndarray:
-
-
 
         p1 = self.predict_proba(test_records)[:, 1]
         return (p1 >= self.calibrated_threshold_).astype(int)
@@ -422,10 +361,6 @@ class PokemonBattlePredictionPipeline:
         print(f"Pipeline loaded from {filepath}")
         return pipeline
 
-
-
-
-
 def main():
     parser = argparse.ArgumentParser(description="End-to-End Pokémon Battle Prediction Pipeline")
     parser.add_argument("--train-file", type=str, default="/Users/user/Downloads/fds-pokemon-battles-prediction-2026/train.jsonl")
@@ -464,7 +399,6 @@ def main():
         })
         out_df.to_csv(args.predictions_out, index=False)
         print(f"Saved {len(out_df)} predictions to {args.predictions_out}")
-
 
 if __name__ == "__main__":
     main()
